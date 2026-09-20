@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server'; import {db,add} from '../../../lib/store'; import {z} from 'zod'; const schema=z.object({name:z.string().min(2),area:z.number().positive(),unit:z.string(),location:z.string().min(2),soil:z.string(),irrigation:z.string()});
+export async function GET(){return NextResponse.json({farms:db.farms})} export async function POST(req:Request){try{const v=schema.parse(await req.json());return NextResponse.json({farm:add('farms',v)},{status:201})}catch{return NextResponse.json({error:'Invalid farm data'},{status:400})}}

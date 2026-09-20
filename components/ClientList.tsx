@@ -1,0 +1,14 @@
+'use client';
+import {useEffect,useState} from 'react'; import {Loader2,Plus,Search,Send,Heart,MessageCircle} from 'lucide-react';
+export function DataPage({type,title,endpoint,fields}:{type:'machinery'|'marketplace'|'community'|'livestock';title:string;endpoint:string;fields:string[]}){
+ const [items,setItems]=useState<any[]>([]);const [loading,setLoading]=useState(true);const [q,setQ]=useState('');const [show,setShow]=useState(false);const [form,setForm]=useState<Record<string,string>>({});
+ const load=()=>fetch(endpoint).then(r=>r.json()).then(d=>setItems(d.items||d.posts||d.animals||[])).catch(()=>setItems([])).finally(()=>setLoading(false));
+ useEffect(()=>{load()},[]);
+ const submit=async()=>{try{const body={...form,price:form.price?Number(form.price):undefined,age:form.age?Number(form.age):undefined};const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not save');setShow(false);setForm({});load()}catch(e:any){alert(e.message)}};
+ const filtered=items.filter(x=>JSON.stringify(x).toLowerCase().includes(q.toLowerCase()));
+ return <div className="page"><div className="container"><div style={{display:'flex',justifyContent:'space-between',gap:15,alignItems:'end',flexWrap:'wrap'}}><div><div className="eyebrow">FarmNivo</div><h1 className="h2">{title}</h1><p className="muted">Working API-connected local data with search and create flows.</p></div><button className="btn btn-primary" onClick={()=>setShow(!show)}><Plus size={17}/>Add</button></div>
+ <div style={{margin:'20px 0',position:'relative'}}><Search size={18} style={{position:'absolute',left:14,top:13,color:'#87948b'}}/><input className="input" style={{paddingLeft:42}} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search..."/></div>
+ {show&&<div className="card fade" style={{marginBottom:20}}><div className="grid grid-2">{fields.map(f=><input className="input" key={f} placeholder={f} value={form[f]||''} onChange={e=>setForm({...form,[f]:e.target.value})}/>)}</div><button className="btn btn-primary" style={{marginTop:12}} onClick={submit}><Send size={16}/>Save</button></div>}
+ {loading?<div className="card"><Loader2 className="spin"/> Loading...</div>:<div className="grid grid-3">{filtered.map((x,i)=><div className="card feature fade" key={x.id||i}><div className="pill">{x.category||x.type||'Agri'}</div><h3>{x.title||x.name||`${x.breed||''} ${x.type||''}`}</h3><p className="muted">{x.location||x.health||x.condition||''}</p>{x.price!==undefined&&<b>₹{Number(x.price).toLocaleString('en-IN')}</b>}{type==='community'&&<div style={{marginTop:12,display:'flex',gap:14}}><span><Heart size={15}/> {x.likes}</span><span><MessageCircle size={15}/> {x.comments?.length||0}</span></div>}</div>)}</div>}
+ </div></div>
+}

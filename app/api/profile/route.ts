@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server'; import {cookies} from 'next/headers'; import {getUserFromToken,persist} from '../../../lib/store';
+export async function GET(){const c=await cookies();const u=getUserFromToken(c.get('farmnivo_session')?.value);return NextResponse.json({user:u?{id:u.id,name:u.name,email:u.email,role:u.role,createdAt:u.createdAt}:null})}
+export async function PATCH(req:Request){const c=await cookies();const u=getUserFromToken(c.get('farmnivo_session')?.value);if(!u)return NextResponse.json({error:'Login required'},{status:401});const b=await req.json();if(typeof b.name==='string'&&b.name.trim())u.name=b.name.trim().slice(0,80);persist();return NextResponse.json({user:{id:u.id,name:u.name,email:u.email,role:u.role}})}

@@ -1,0 +1,1 @@
+import Link from 'next/link'; export default function NotFound(){return <div className="page"><div className="container"><div className="card"><div className="eyebrow">404</div><h1 className="h2">Page not found</h1><p className="muted">That FarmNivo workspace does not exist.</p><Link className="btn btn-primary" href="/">Go home</Link></div></div></div>}

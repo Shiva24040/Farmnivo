@@ -1,0 +1,1 @@
+import {DataPage} from '../../components/ClientList'; export default function Page(){return <DataPage type="marketplace" title="Farmer Marketplace" endpoint="/api/marketplace" fields={['title','category','price','location','condition']}/>}

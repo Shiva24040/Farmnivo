@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server'; import {db,add} from '../../../lib/store'; import {z} from 'zod';
+const schema=z.object({title:z.string().min(2).max(120),category:z.string().min(2).max(50),description:z.string().max(500).optional(),videoUrl:z.string().url().optional()});
+export async function GET(){return NextResponse.json({reels:db.reels})} export async function POST(req:Request){try{return NextResponse.json({reel:add('reels',{...schema.parse(await req.json()),views:0,createdAt:new Date().toISOString()})},{status:201})}catch{return NextResponse.json({error:'Invalid reel data'},{status:400})}}

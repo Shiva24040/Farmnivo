@@ -1,0 +1,1 @@
+import {DataPage} from '../../components/ClientList'; export default function Page(){return <DataPage type="machinery" title="Machinery Hub" endpoint="/api/machinery" fields={['title','category','price','location','condition']}/>}

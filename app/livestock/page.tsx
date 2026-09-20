@@ -1,0 +1,1 @@
+import {DataPage} from '../../components/ClientList'; export default function Page(){return <DataPage type="livestock" title="Livestock Hub" endpoint="/api/livestock" fields={['type','breed','age','health']}/>}

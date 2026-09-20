@@ -1,0 +1,1 @@
+import {DataPage} from '../../components/ClientList'; export default function Page(){return <DataPage type="community" title="Farmer Community" endpoint="/api/community" fields={['author','body','category']}/>}

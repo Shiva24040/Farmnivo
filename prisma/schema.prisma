@@ -1,0 +1,9 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+model User { id String @id @default(cuid()) name String email String @unique createdAt DateTime @default(now()) farms Farm[] }
+model Farm { id String @id @default(cuid()) userId String? name String area Float unit String location String soil String irrigation String createdAt DateTime @default(now()) user User? @relation(fields:[userId], references:[id]) crops Crop[] }
+model Crop { id String @id @default(cuid()) farmId String name String area Float status String sowingDate DateTime? createdAt DateTime @default(now()) farm Farm @relation(fields:[farmId], references:[id], onDelete:Cascade) }
+model Machinery { id String @id @default(cuid()) title String category String price Float location String condition String createdAt DateTime @default(now()) }
+model MarketplaceItem { id String @id @default(cuid()) title String category String price Float location String condition String createdAt DateTime @default(now()) }
+model CommunityPost { id String @id @default(cuid()) author String body String category String likes Int @default(0) createdAt DateTime @default(now()) }
+model Livestock { id String @id @default(cuid()) type String breed String age Float health String createdAt DateTime @default(now()) }
