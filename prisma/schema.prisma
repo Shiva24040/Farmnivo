@@ -1,9 +1,274 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
-model User { id String @id @default(cuid()) name String email String @unique createdAt DateTime @default(now()) farms Farm[] }
-model Farm { id String @id @default(cuid()) userId String? name String area Float unit String location String soil String irrigation String createdAt DateTime @default(now()) user User? @relation(fields:[userId], references:[id]) crops Crop[] }
-model Crop { id String @id @default(cuid()) farmId String name String area Float status String sowingDate DateTime? createdAt DateTime @default(now()) farm Farm @relation(fields:[farmId], references:[id], onDelete:Cascade) }
-model Machinery { id String @id @default(cuid()) title String category String price Float location String condition String createdAt DateTime @default(now()) }
-model MarketplaceItem { id String @id @default(cuid()) title String category String price Float location String condition String createdAt DateTime @default(now()) }
-model CommunityPost { id String @id @default(cuid()) author String body String category String likes Int @default(0) createdAt DateTime @default(now()) }
-model Livestock { id String @id @default(cuid()) type String breed String age Float health String createdAt DateTime @default(now()) }
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  passwordHash  String
+  role          String         @default("farmer")
+  createdAt     DateTime       @default(now())
+  sessions      Session[]
+  farms         Farm[]
+  crops         Crop[]
+  machinery    Machinery[]
+  marketplace  MarketplaceItem[]
+  posts        CommunityPost[]
+  animals      Livestock[]
+  reels        Reel[]
+  notifications Notification[]
+  tasks        FarmTask[]
+  orders       Order[]
+  bookings     Booking[]
+  soilRecords  SoilRecord[]
+  inputs       FarmInput[]
+  finances     FinanceRecord[]
+  insurance    InsuranceRecord[]
+  iotReadings  IoTReading[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Farm {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  area       Float
+  unit       String
+  location   String
+  soil       String
+  irrigation String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crops      Crop[]
+}
+
+model Crop {
+  id         String   @id @default(cuid())
+  userId     String
+  farmId     String
+  name       String
+  area       Float
+  status     String
+  sowingDate DateTime?
+  notes      String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farm       Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+}
+
+model Machinery {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  category    String
+  price       Float
+  location    String
+  condition   String
+  description String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MarketplaceItem {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  category    String
+  price       Float
+  location    String
+  condition   String
+  description String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CommunityPost {
+  id        String   @id @default(cuid())
+  userId    String
+  body      String
+  category  String
+  likes     Int      @default(0)
+  comments  Json     @default("[]")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Livestock {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  breed     String
+  age       Float
+  health    String
+  notes     String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Reel {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  category    String
+  views       Int      @default(0)
+  description String?
+  videoUrl    String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  location    String
+  description String
+  contact     String
+  createdAt   DateTime @default(now())
+}
+
+model Scheme {
+  id        String   @id @default(cuid())
+  name      String
+  state     String
+  category  String
+  summary   String
+  source    String
+  updatedAt DateTime @updatedAt
+  @@unique([name,state])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model FarmTask {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  dueDate   DateTime?
+  priority  String   @default("medium")
+  status    String   @default("pending")
+  notes     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  userId     String
+  itemType   String
+  itemId     String
+  title      String
+  quantity   Float    @default(1)
+  total      Float
+  status     String   @default("requested")
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id         String   @id @default(cuid())
+  userId     String
+  serviceType String
+  referenceId String?
+  title      String
+  date       DateTime?
+  status     String   @default("requested")
+  notes      String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SoilRecord {
+  id         String   @id @default(cuid())
+  userId     String
+  farmId     String?
+  ph         Float?
+  nitrogen   Float?
+  phosphorus Float?
+  potassium  Float?
+  notes      String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FarmInput {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  category   String
+  quantity   Float    @default(1)
+  unit       String   @default("unit")
+  cost       Float    @default(0)
+  status     String   @default("planned")
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FinanceRecord {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  category   String
+  amount     Float
+  note       String?
+  date       DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model InsuranceRecord {
+  id         String   @id @default(cuid())
+  userId     String
+  provider   String
+  policyType String
+  crop       String?
+  policyNo   String?
+  premium    Float?
+  sumInsured Float?
+  status     String   @default("active")
+  expiryDate DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model IoTReading {
+  id         String   @id @default(cuid())
+  userId     String
+  fieldId    String   @default("main")
+  moisture   Float?
+  temperature Float?
+  humidity   Float?
+  ph         Float?
+  light      Float?
+  rainfall   Float?
+  tank       Float?
+  air        Float?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

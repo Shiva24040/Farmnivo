@@ -1,12 +1,16 @@
 {
-  "name": "farmnivo",
-  "version": "3.0.0",
+  "name": "rythu-nestham",
+  "version": "4.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "next": "16.3.5",

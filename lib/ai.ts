@@ -1,39 +1,139 @@
-type Message={role:'user'|'assistant'|'system';content:string};
+import { z } from 'zod';
 
-function localAgriAnswer(question:string,farmContext?:any){
-  const q=question.toLowerCase();
-  const farm=farmContext?.name?` for ${farmContext.name}`:'';
-  if(q.includes('paddy')||q.includes('rice')) return `For paddy${farm}, start with soil testing and field levelling, then plan nursery/transplanting or a suitable direct-seeding method for your local season. Keep irrigation controlled rather than continuously flooding where local practice and soil permit. If you tell me your district, variety, sowing/transplanting date and water source, I can turn this into a field checklist.`;
-  if(q.includes('yellow')||q.includes('tomato')) return `For yellowing tomato leaves, first check whether the yellowing starts on older or newer leaves, soil moisture, drainage, root health and recent fertilizer use. Also inspect leaf undersides for pests and look for spots or curling. Avoid adding more fertilizer until the cause is clearer. A clear close-up photo plus crop age and location would help.`;
-  if(q.includes('tractor')||q.includes('machinery')) return `For machinery selection, compare acreage, soil type, implement compatibility, annual operating hours, service availability and total ownership cost—not just horsepower. Tell me your acreage, main operations and budget and I can create a comparison checklist.`;
-  if(q.includes('irrigation')||q.includes('drip')) return `For irrigation, use crop stage and soil moisture to guide timing. Check emitter uniformity, filters, pressure and leaks regularly. Avoid fixed schedules that ignore rainfall or soil conditions. Tell me the crop, soil, irrigation system and field area for a more specific plan.`;
-  return `I can help with crops, soil, irrigation, pests, diseases, machinery, livestock, farm business and farm planning${farm}. For a useful answer, tell me the crop or livestock, location, age/stage, soil or housing conditions and the exact problem or goal.`;
+type Message = { role: 'user' | 'assistant' | 'system'; content: string };
+
+type Source = { title?: string; url?: string };
+
+function providerConfig() {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error('AI_PROVIDER_NOT_CONFIGURED');
+  const base = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
+  return {
+    key,
+    base,
+    model: process.env.OPENAI_MODEL || 'gpt-5.4-mini',
+    visionModel: process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || 'gpt-5.4-mini',
+  };
 }
 
-export async function generateAgriResponse(messages:Message[],farmContext?:unknown){
-  const key=process.env.OPENAI_API_KEY;
-  const demo=process.env.DEMO_MODE==='true';
-  const q=messages.filter(m=>m.role==='user').at(-1)?.content||'';
-  if(!key||demo)return localAgriAnswer(q,farmContext);
-  const base=(process.env.AI_BASE_URL||'https://api.openai.com/v1').replace(/\/$/,'');
-  const model=process.env.OPENAI_MODEL||'gpt-5-mini';
-  const system=`You are AgriCopilot, a conversational agriculture assistant inside FarmNivo. Prioritize practical crop, soil, irrigation, plant nutrition, pests, diseases, machinery, livestock, farm business, post-harvest, sustainability and farm planning guidance. Use supplied farmer context when useful. Ask concise follow-up questions when important details are missing. Never claim an image or symptom diagnosis is certain. For pesticides or chemicals, emphasize product labels and local agricultural guidance and do not prescribe unsafe dosage. Do not invent live prices, weather, laws or schemes. Clearly say when live data is unavailable.`;
-  const context=farmContext?`\nFarmer context: ${JSON.stringify(farmContext)}`:'';
-  const res=await fetch(`${base}/responses`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model,input:[{role:'system',content:system+context},...messages]})});
-  if(!res.ok){const detail=await res.text().catch(()=> '');const e=new Error(`AI_PROVIDER_${res.status}`);(e as any).detail=detail;throw e;}
-  const data=await res.json();
-  const text=data.output_text||data.output?.flatMap((x:any)=>Array.isArray(x.content)?x.content:[]).map((x:any)=>x.text||'').join('')||'';
-  return text.trim()||localAgriAnswer(q,farmContext);
+function extractOutput(data: any) {
+  return String(data.output_text || data.output?.flatMap((x: any) => Array.isArray(x.content) ? x.content : []).map((x: any) => x.text || '').join('') || '').trim();
 }
 
-export async function analyzeCropImage(dataUrl:string,question?:string){
-  const key=process.env.OPENAI_API_KEY;
-  if(!key||process.env.DEMO_MODE==='true') return `Demo Crop Doctor result\n\nVisible-image analysis is running in demo mode. I cannot make a reliable diagnosis without the vision provider. Check leaf colour/pattern, spots, curling, pest presence, soil moisture, drainage and recent fertilizer or pesticide use. ${question?`Your note: ${question}`:''}\n\nFor a real analysis, configure a supported vision-capable API provider and upload a clear image of the affected plant part.`;
-  const base=(process.env.AI_BASE_URL||'https://api.openai.com/v1').replace(/\/$/,'');
-  const model=process.env.OPENAI_VISION_MODEL||process.env.OPENAI_MODEL||'gpt-5-mini';
-  const prompt=`Analyze this crop/plant image as an agricultural assistant. Give (1) visible observations, (2) possible causes with uncertainty, (3) what to check next, (4) low-risk practical next steps, and (5) when to contact a local agriculture expert. Do not claim certainty and do not prescribe pesticide dosage. User note: ${question||'No additional note.'}`;
-  const res=await fetch(`${base}/responses`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model,input:[{role:'user',content:[{type:'input_text',text:prompt},{type:'input_image',image_url:dataUrl}]}]})});
-  if(!res.ok)throw new Error(`VISION_PROVIDER_${res.status}`);
-  const data=await res.json();
-  return (data.output_text||data.output?.flatMap((x:any)=>Array.isArray(x.content)?x.content:[]).map((x:any)=>x.text||'').join('')||'No analysis received.').trim();
+function extractSources(data: any): Source[] {
+  const out: Source[] = [];
+  for (const item of data.output || []) {
+    for (const c of item.content || []) {
+      for (const a of c.annotations || []) {
+        if (a.type === 'url_citation' && a.url_citation?.url) out.push({ title: a.url_citation.title, url: a.url_citation.url });
+      }
+    }
+  }
+  return [...new Map(out.map(s => [s.url, s])).values()].slice(0, 8);
+}
+
+async function responses(body: Record<string, unknown>) {
+  const { key, base } = providerConfig();
+  const res = await fetch(`${base}/responses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    const e = new Error(`AI_PROVIDER_${res.status}`);
+    (e as any).detail = detail;
+    throw e;
+  }
+  return res.json();
+}
+
+const AGRI_SYSTEM = `You are Rythu Nestham AI, a multilingual agriculture assistant for Indian farmers.
+Answer in the user's language when clear (especially Telugu, Hindi or English). Give practical, understandable guidance.
+Use farmer context when supplied. Never invent current weather, mandi prices, government schemes, laws or other live facts.
+For current information, use the web search tool when enabled. Clearly separate current sourced information from general agronomy.
+For crop/animal health, explain uncertainty and recommend a qualified local agriculture/veterinary expert for serious cases.
+Never claim an image-based assessment is a confirmed diagnosis. Do not provide unsafe pesticide dosage instructions; refer to the product label and local agricultural guidance.
+Do not request or expose passwords, API keys or other secrets.`;
+
+function shouldSearch(text: string) {
+  return /(today|current|latest|live|price|prices|mandi|market rate|scheme|subsidy|government|weather|forecast|news|eligib|2026|2025)/i.test(text);
+}
+
+export async function generateAgriResponse(messages: Message[], farmContext?: unknown) {
+  const { model } = providerConfig();
+  const latestUserText = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  const useSearch = process.env.OPENAI_WEB_SEARCH !== 'false' && shouldSearch(latestUserText);
+  const context = farmContext ? `\nFarmer context: ${JSON.stringify(farmContext).slice(0, 12000)}` : '';
+  const data = await responses({
+    model,
+    input: [{ role: 'system', content: AGRI_SYSTEM + context }, ...messages],
+    ...(useSearch ? { tools: [{ type: 'web_search' }] } : {}),
+  });
+  const answer = extractOutput(data);
+  if (!answer) throw new Error('AI_EMPTY_RESPONSE');
+  return { answer, sources: extractSources(data), searched: useSearch };
+}
+
+const diagnosisSchema = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    summary: { type: 'string' },
+    observations: { type: 'array', items: { type: 'string' } },
+    possibleCauses: { type: 'array', items: { type: 'string' } },
+    confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
+    nextChecks: { type: 'array', items: { type: 'string' } },
+    actions: { type: 'array', items: { type: 'string' } },
+    warning: { type: 'string' },
+  },
+  required: ['summary', 'observations', 'possibleCauses', 'confidence', 'nextChecks', 'actions', 'warning'],
+} as const;
+
+export async function analyzeCropImage(dataUrl: string, question?: string) {
+  const { visionModel } = providerConfig();
+  const prompt = `Analyze this crop/plant image as an agricultural assistant. Return only the requested structured result.\nUser note: ${question || 'No additional note.'}`;
+  const data = await responses({
+    model: visionModel,
+    input: [{ role: 'user', content: [{ type: 'input_text', text: AGRI_SYSTEM + '\n' + prompt }, { type: 'input_image', image_url: dataUrl }] }],
+    text: { format: { type: 'json_schema', name: 'crop_diagnosis', strict: true, schema: diagnosisSchema } },
+  });
+  const raw = extractOutput(data);
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { throw new Error('AI_INVALID_STRUCTURED_RESPONSE'); }
+  return { diagnosis: z.object({
+    summary: z.string(), observations: z.array(z.string()), possibleCauses: z.array(z.string()),
+    confidence: z.enum(['low','medium','high']), nextChecks: z.array(z.string()), actions: z.array(z.string()), warning: z.string(),
+  }).parse(parsed) };
+}
+
+const insightSchema = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    headline: { type: 'string' },
+    priority: { type: 'string', enum: ['low', 'medium', 'high'] },
+    actions: { type: 'array', items: { type: 'string' } },
+    explanation: { type: 'string' },
+  },
+  required: ['headline', 'priority', 'actions', 'explanation'],
+} as const;
+
+export async function generateFarmInsight(context: unknown) {
+  const { model } = providerConfig();
+  const data = await responses({
+    model,
+    input: [{ role: 'system', content: AGRI_SYSTEM + '\nCreate a short farm-management insight from the supplied data. Do not invent measurements.' }, { role: 'user', content: JSON.stringify(context).slice(0, 14000) }],
+    text: { format: { type: 'json_schema', name: 'farm_insight', strict: true, schema: insightSchema } },
+  });
+  return { insight: z.object({ headline:z.string(), priority:z.enum(['low','medium','high']), actions:z.array(z.string()), explanation:z.string() }).parse(JSON.parse(extractOutput(data))) };
+}
+
+export async function explainWithWebSearch(query: string, context = '') {
+  const { model } = providerConfig();
+  const data = await responses({
+    model,
+    tools: [{ type: 'web_search', filters: { allowed_domains: ['myscheme.gov.in', 'pmkisan.gov.in', 'agricoop.gov.in', 'agriwelfare.gov.in', 'telangana.gov.in', 'tg.nic.in'] } }],
+    input: [{ role: 'system', content: AGRI_SYSTEM + '\nUse authoritative Indian government sources where possible. Return concise, source-grounded information and state if eligibility depends on location or current rules.' }, { role: 'user', content: query + (context ? `\nContext: ${context}` : '') }],
+  });
+  return { answer: extractOutput(data), sources: extractSources(data), searched: true };
 }

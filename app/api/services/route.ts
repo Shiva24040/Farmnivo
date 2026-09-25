@@ -1,1 +1,2 @@
-import {NextResponse} from 'next/server'; import {db} from '../../../lib/store'; export async function GET(){return NextResponse.json({services:db.services})}
+import { NextResponse } from 'next/server'; import { prisma } from '../../../lib/prisma';
+export async function GET(){const services=await prisma.service.findMany({orderBy:{title:'asc'}});return NextResponse.json({services});}

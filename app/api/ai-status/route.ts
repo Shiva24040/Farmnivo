@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server'; import {prisma} from '../../../lib/prisma';
+export async function GET(){let db=false;try{await prisma.$queryRaw`SELECT 1`;db=true}catch{}return NextResponse.json({database:db,openai:!!process.env.OPENAI_API_KEY,weather:true,market:!!process.env.OPENAI_API_KEY,storage:!!process.env.STORAGE_BASE_URL,mode:process.env.OPENAI_API_KEY?'live-integrations':'configuration-required'});}

@@ -1,1 +1,2 @@
-import {NextResponse} from 'next/server'; export async function GET(){return NextResponse.json({ok:true,service:'FarmNivo API',version:'2.0.0',time:new Date().toISOString()})}
+import { NextResponse } from 'next/server'; import { prisma } from '../../../lib/prisma';
+export async function GET(){try{await prisma.$queryRaw`SELECT 1`;return NextResponse.json({ok:true,service:'Rythu Nestham API',version:'4.0.0',database:'connected',time:new Date().toISOString()});}catch{return NextResponse.json({ok:false,service:'Rythu Nestham API',database:'unavailable',time:new Date().toISOString()},{status:503});}}

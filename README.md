@@ -1,46 +1,30 @@
-# FarmNivo — Serious Agriculture Platform Foundation
+# Rythu Nestham — Pan-India Farmer Super Platform
 
-FarmNivo combines farm management, AI assistance, Crop Doctor, machinery, marketplace, community, livestock, reels, academy, schemes, services, calculators, weather integration points, search, notifications and farmer accounts.
+Rythu Nestham combines farmer workflows that would otherwise be spread across separate tools: farm management, crops, AI Crop Doctor, AI Farm Copilot, weather, market intelligence, marketplace, machinery, livestock, services, government schemes, community, AgriReels, IoT, calculators, tasks, soil, inputs, finance, insurance, academy, expert requests, orders and notifications.
 
-## Run locally
+## Technology
+- Next.js + React
+- PostgreSQL + Prisma
+- Server-side authentication with HTTP-only sessions
+- OpenAI Responses API + hosted web search
+- Open-Meteo weather/geocoding
+- Authenticated IoT ingestion endpoint
+
+## Setup
+
+Copy `.env.example` to `.env.local` and configure the real values:
 
 ```bash
 npm install
+npx prisma generate
+npx prisma migrate dev --name initial
+npx prisma db seed
+npm run typecheck
+npm run build
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Then open `http://localhost:3000`.
 
-### AI without API credits
-Use:
-
-```env
-DEMO_MODE=true
-```
-
-Copilot and Crop Doctor then use a local agriculture fallback so you can build and demonstrate the product without spending API credits.
-
-### Real AI
-Set `DEMO_MODE=false` and provide a valid provider key in `.env.local`. Never expose or commit that key.
-
-## Included
-
-- Farmer dashboard and persistent local development data
-- Farm and crop records
-- Local account/login foundation with HTTP-only session cookie
-- AI Farm Copilot with provider + local fallback architecture
-- AI Crop Doctor vision workflow
-- Machinery and marketplace CRUD APIs
-- Community and livestock APIs
-- AgriReels creation/read API
-- Academy, schemes and services workspaces
-- Farm calculators
-- Search and notifications
-- Weather provider integration point
-- Prisma PostgreSQL schema for production migration
-
-## Production work still required
-
-Before public launch, replace local JSON persistence with PostgreSQL/Prisma repositories, use a production identity provider, add object storage for images/videos, connect verified weather/market/scheme sources, implement moderation/rate limits/audit logs, add payments only through appropriate compliant providers, configure backups/monitoring, write automated tests and deploy with secret management.
-
-This is a serious development foundation, not a claim that every external integration or production compliance requirement is already complete.
+## Important
+The code contains no bundled OpenAI key, database password, storage secret or fake AI answer. A live deployment must provide the required credentials and external services. Government scheme information should always be verified against the current official source; the application stores official source links and can use OpenAI web search for current discovery.

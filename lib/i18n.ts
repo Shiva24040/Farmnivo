@@ -1,0 +1,9 @@
+export type Locale = 'en'|'te'|'hi';
+export const localeNames:Record<Locale,string>={en:'EN',te:'తెలుగు',hi:'हिन्दी'};
+export const translations:Record<Locale,Record<string,string>>={
+  en:{dashboard:'Dashboard',market:'Market',tasks:'Tasks',soil:'Soil',inputs:'Inputs',finance:'Finance',insurance:'Insurance',experts:'Experts',orders:'Orders',farm:'My Farm',crops:'My Crops',doctor:'Crop Doctor',copilot:'Rythu Dost',iot:'Farm IoT',weather:'Weather & Alerts',marketplace:'Marketplace',machinery:'Machinery',livestock:'Livestock',community:'Community',reels:'AgriReels',academy:'Academy',schemes:'Schemes',services:'Services',tools:'Calculators',notifications:'Notifications',profile:'Profile',login:'Login',search:'Search',language:'Language',smart:'Smart Farming, Stronger Tomorrow'},
+  te:{dashboard:'డాష్‌బోర్డ్',farm:'నా వ్యవసాయ క్షేత్రం',crops:'నా పంటలు',doctor:'పంట డాక్టర్',copilot:'రైతు దోస్త్',iot:'ఫార్మ్ IoT',weather:'వాతావరణం & హెచ్చరికలు',marketplace:'మార్కెట్‌ప్లేస్',machinery:'యంత్రాలు',livestock:'పశుసంవర్ధక',community:'రైతు సమాజం',reels:'అగ్రి రీల్స్',academy:'అకాడమీ',schemes:'పథకాలు',services:'సేవలు',tools:'కాలిక్యులేటర్లు',notifications:'నోటిఫికేషన్లు',profile:'ప్రొఫైల్',login:'లాగిన్',search:'వెతకండి',language:'భాష',smart:'స్మార్ట్ వ్యవసాయం, బలమైన భవిష్యత్తు'},
+  hi:{dashboard:'डैशबोर्ड',farm:'मेरा खेत',crops:'मेरी फसलें',doctor:'फसल डॉक्टर',copilot:'रैतु दोस्त',iot:'फार्म IoT',weather:'मौसम और अलर्ट',marketplace:'मार्केटप्लेस',machinery:'कृषि मशीनरी',livestock:'पशुपालन',community:'किसान समुदाय',reels:'एग्रीरील्स',academy:'अकादमी',schemes:'योजनाएं',services:'सेवाएं',tools:'कैलकुलेटर',notifications:'सूचनाएं',profile:'प्रोफाइल',login:'लॉगिन',search:'खोजें',language:'भाषा',smart:'स्मार्ट खेती, मजबूत भविष्य'}
+};
+export function getLocale(value:string|undefined):Locale{return value==='te'||value==='hi'?value:'en';}
+export function t(locale:Locale,key:string){return translations[locale][key]??translations.en[key]??key;}

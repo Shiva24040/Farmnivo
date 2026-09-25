@@ -1,3 +1,4 @@
-import {NextResponse} from 'next/server'; import {db,add} from '../../../lib/store'; import {z} from 'zod';
-const schema=z.object({title:z.string().min(2).max(120),category:z.string().min(2).max(50),description:z.string().max(500).optional(),videoUrl:z.string().url().optional()});
-export async function GET(){return NextResponse.json({reels:db.reels})} export async function POST(req:Request){try{return NextResponse.json({reel:add('reels',{...schema.parse(await req.json()),views:0,createdAt:new Date().toISOString()})},{status:201})}catch{return NextResponse.json({error:'Invalid reel data'},{status:400})}}
+import { NextResponse } from 'next/server'; import { z } from 'zod'; import { prisma } from '../../../lib/prisma'; import { currentUser } from '../../../lib/auth';
+const schema=z.object({title:z.string().trim().min(2).max(120),category:z.string().trim().min(2).max(50),description:z.string().max(500).optional(),videoUrl:z.string().url()});
+export async function GET(){const reels=await prisma.reel.findMany({include:{user:{select:{name:true}}},orderBy:{createdAt:'desc'}});return NextResponse.json({reels:reels.map(r=>({...r,creator:r.user.name}))});}
+export async function POST(req:Request){const u=await currentUser();if(!u)return NextResponse.json({error:'Login required'},{status:401});try{const reel=await prisma.reel.create({data:{...schema.parse(await req.json()),userId:u.id}});return NextResponse.json({reel},{status:201});}catch{return NextResponse.json({error:'Invalid reel data'},{status:400});}}
